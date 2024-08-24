@@ -1,4 +1,4 @@
-module github.com/gopudate/mstopper
+module github.com/goupdate/mstopper
 
 go 1.23.0
 
