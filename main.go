@@ -42,9 +42,9 @@ func (s *Stopper) IsStopCalled() bool {
 	return atomic.LoadInt32(&s.stopCalled) == 1
 }
 
-//вызывается для передачи сигнала останова всем желающим
-//ожидаем завершения работы всех, кто запросил стоппер
-//похож на waitgroup с тем отличием, что помимо Wait дается команда всем на стоп
+// вызывается для передачи сигнала останова всем желающим
+// ожидаем завершения работы всех, кто запросил стоппер
+// похож на waitgroup с тем отличием, что помимо Wait дается команда всем на стоп
 func (s *Stopper) StopAll() {
 	s.m.Lock()
 	defer s.m.Unlock()
@@ -124,7 +124,7 @@ type StopperModule struct {
 	s    *Stopper
 }
 
-//зарегистрировать новый модуль, который будет ждать останова
+// зарегистрировать новый модуль, который будет ждать останова
 func (s *Stopper) NewModule() *StopperModule {
 	m := &StopperModule{
 		ch:   make(chan bool, 1),
@@ -134,15 +134,27 @@ func (s *Stopper) NewModule() *StopperModule {
 	return m
 }
 
-//ждем команду останова
-//defer WaitStopTrigger()
+// ждем команду останова
+// defer WaitStopTrigger()
 func (m *StopperModule) WaitStopTrigger() {
 	m.s.ch_wait.Store(m, nil)
 
 	<-m.s.ch_stop //ждем команды на стоп
 }
 
-//сообщаем наружу, что мы завершили работу
+// wait stop via  <-WaitStopC()
+func (m *StopperModule) WaitStopC() <-chan bool {
+	c := make(chan bool)
+	go func() {
+		mc := m.s.NewModule()
+		mc.WaitStopTrigger()
+		c <- true
+		mc.Done()
+	}()
+	return c
+}
+
+// сообщаем наружу, что мы завершили работу
 func (m *StopperModule) Done() {
 	m.ch <- true
 }
